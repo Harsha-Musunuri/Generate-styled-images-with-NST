@@ -1,4 +1,5 @@
 #misc
+import argparse
 from dataset import *
 from model import *
 import os
@@ -11,7 +12,7 @@ from torchvision import utils
 
 
 def run_style_transfer(cnn, normalization_mean, normalization_std,
-                       content_img, style_img, input_img,device, num_steps=300,
+                       content_img, style_img, input_img,device, epochs=300,
                        style_weight=1000000, content_weight=1):
     """Run the style transfer."""
     print('Building the style transfer model..')
@@ -21,7 +22,7 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
 
     print('Optimizing..')
     run = [0]
-    while run[0] <= num_steps:
+    while run[0] <= epochs:
 
         def closure():
             # correct the values of updated input image
@@ -60,14 +61,27 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
     return input_img
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="NST")
+
+    #args
+    parser.add_argument("--name", type=str, help="name to save styled Img")
+    parser.add_argument("--noise", action='store_true')
+    parser.add_argument("--epochs", type=int, default=100, help="number of epochs to train ?")
+    parser.add_argument("--styleImg", type=str, default='path to styleImg')
+    parser.add_argument("--contentImg", type=str, default='path to contentImg')
+
+
+    args = parser.parse_args()
+
+
     # data processing
-    device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # desired size of the output image
     imsize = 512 if torch.cuda.is_available() else 128  # use small size if no gpu
 
     # load images
-    style_img = image_loader("../NST-remote/images/styleImages/vanGogh-theStarryNight.jpg", device, imsize)
-    content_img = image_loader("../NST-remote/images/contentImages/harsha-linkedin.jpg", device, imsize)
+    style_img = image_loader(args.styleImg, device, imsize)
+    content_img = image_loader(args.contentImg, device, imsize)
 
     # assert if the two images are of same size or not
     assert style_img.size() == content_img.size(), \
@@ -89,13 +103,16 @@ if __name__ == "__main__":
     content_layers_default = ['conv_4']
     style_layers_default = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
 
-    input_img = content_img.clone()
+    if args.noise:
+        input_img = torch.randn(content_img.data.size(), device=device)
+    else:
+        input_img = content_img.clone()
     output = run_style_transfer(cnn, cnn_normalization_mean, cnn_normalization_std,
-                                content_img, style_img, input_img,device)
+                                content_img, style_img, input_img,device,epochs=args.epochs)
 
     utils.save_image(
                         output,
-                        "harsha.png",
+                        args.name+'.png',
                         # normalize=True,
                         range=(-1, 1),
                         )
