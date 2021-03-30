@@ -3,6 +3,7 @@ import argparse
 from dataset import *
 from model import *
 import os
+from tqdm import tqdm
 
 #torchRelated
 import torch
@@ -21,8 +22,8 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
     optimizer = get_input_optimizer(input_img)
 
     print('Optimizing..')
-    run = [0]
-    while run[0] <= epochs:
+    epoch = [0]
+    while epoch[0] <= epochs:
 
         def closure():
             # correct the values of updated input image
@@ -44,9 +45,9 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
             loss = style_score + content_score
             loss.backward()
 
-            run[0] += 1
-            if run[0] % 50 == 0:
-                print("run {}:".format(run))
+            epoch[0] += 1
+            if epoch[0] % 50 == 0:
+                print("epoch {}:".format(epoch))
                 print('Style Loss : {:4f} Content Loss: {:4f}'.format(
                     style_score.item(), content_score.item()))
                 print()
@@ -69,6 +70,7 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=100, help="number of epochs to train ?")
     parser.add_argument("--styleImg", type=str, default='path to styleImg')
     parser.add_argument("--contentImg", type=str, default='path to contentImg')
+    parser.add_argument("--log_root", type=str, help="where to save training logs", default='logs')
 
 
     args = parser.parse_args()
